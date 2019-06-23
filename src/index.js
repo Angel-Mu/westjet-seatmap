@@ -4,6 +4,17 @@ const CELL_LENGTH = 13;
 const WINDOW_SPAN = 7;
 const AISLE_SPAN = 7;
 
+const colors = {
+  PREFERRED_SEAT: '\x1b[32m',
+  EXIT_ROW_SEAT: '\x1b[34m',
+  BLOCKED_SEAT: '\x1b[31m',
+  REGULAR_SEAT: '\x1b[36m',
+  DEFAULT: '\x1b[0m',
+  BG_HEADER: '\x1b[45m',
+  FG_HEADER: '\x1b[30m',
+  BG_DEFAULT: '\x1b[40m',
+};
+
 const centerText = (value, max) => {
   const { length } = value;
   const missing = max - length;
@@ -23,7 +34,37 @@ const aisleCellText = (value, side) => {
   return side === 'left' ? `${blank}+${str}` : `${str}+${blank}`;
 };
 
-const print = (data) => {
+const beautifyValue = (value, characteristics = { }) => {
+  const {
+    BLOCKED_SEAT: blockedSeat = false,
+    PREFERRED_SEAT: preferredSeat = false,
+    EXIT_ROW_SEAT: exitRow = false,
+  } = characteristics;
+  const { DEFAULT } = colors;
+  let seatColor;
+
+  switch (true) {
+    case blockedSeat: {
+      seatColor = colors.BLOCKED_SEAT;
+      break;
+    }
+    case preferredSeat: {
+      seatColor = colors.PREFERRED_SEAT;
+      break;
+    }
+    case exitRow: {
+      seatColor = colors.EXIT_ROW_SEAT;
+      break;
+    }
+    default: {
+      seatColor = colors.REGULAR_SEAT;
+      break;
+    }
+  }
+  return `${seatColor}${value}${DEFAULT}`;
+};
+
+const printSeatMap = (data) => {
   const {
     aircraft: {
       deck: {
@@ -54,7 +95,7 @@ const print = (data) => {
     }
     return str;
   }, '');
-  console.log(textCols);
+  const headerText = `${colors.BG_HEADER}${colors.FG_HEADER}${textCols}${colors.DEFAULT}${colors.BG_DEFAULT}`;
 
   const textRows = rows.reduce((acc, row) => {
     let str = centerText(row.rowNumber.toString(), WINDOW_SPAN);
@@ -64,24 +105,27 @@ const print = (data) => {
         characteristics: {
           AISLE_SEAT: aisleSeat = false,
           WINDOW: windowSeat = false,
-          // BLOCKED_SEAT: blockedSeat = false,
-          // PREFERRED_SEAT: preferredSeat = false,
+          BLOCKED_SEAT: blockedSeat = false,
         } = {},
       } = seat;
+      const value = !blockedSeat ? seat.price : 'X';
       let text;
       switch (true) {
         case windowSeat: {
           const side = index === 0 ? 'left' : 'right';
-          text = `${ac}${windowCellText(seat.price, side, false)}`;
+          const beautyText = beautifyValue(windowCellText(value, side, false), seat.characteristics);
+          text = `${ac}${beautyText}`;
           break;
         }
         case aisleSeat: {
           const side = seats[index - 1].characteristics.AISLE_SEAT ? 'left' : 'right';
-          text = `${ac}${aisleCellText(seat.price, side)}`;
+          const beautyText = beautifyValue(aisleCellText(value, side), seat.characteristics);
+          text = `${ac}${beautyText}`;
           break;
         }
         default: {
-          text = `${ac}|${centerText(seat.price, CELL_LENGTH)}|`;
+          const beautyText = beautifyValue(centerText(value, CELL_LENGTH), seat.characteristics);
+          text = `${ac}|${beautyText}|`;
           break;
         }
       }
@@ -90,6 +134,8 @@ const print = (data) => {
     str += `${textRow}${str}\n`;
     return acc + str;
   }, '');
+
+  console.log(headerText);
   console.log(textRows);
 };
 
@@ -100,13 +146,10 @@ const init = () => {
     json: true,
   };
 
-  // print(res);
-
   rp(opt)
     .then((response) => {
-      // console.log('Got Response', response);
       console.log('Got Successful Response');
-      print(response);
+      printSeatMap(response);
     })
     .catch((error) => {
       console.log('Got an ERROR!');
