@@ -2,19 +2,43 @@ const rp = require('request-promise');
 
 const generateSeatMap = require('./generate-seatmap');
 
+const data = [{
+  fareClass: 'A',
+  flightNumber: '1508',
+  airlineCodeOperating: 'WS',
+  operatingFlightNumber: '1508',
+  airlineCodeMarketing: 'WS',
+  departureDateTime: '2019-07-26T10:30:00',
+  arrivalDateTime: '2019-07-26T12:26:00',
+  arrival: 'SFO',
+  departure: 'YYC',
+}];
+
 const handler = () => {
+  const encodedFlightInfo = encodeURIComponent(JSON.stringify([{ flight: data }]));
   const opt = {
-    uri: 'https://apiw.westjet.com/bookingservices/seatmap?segment=1&flightInfo=%5B%7B%22flight%22%3A%5B%7B%22fareClass%22%3A%22E%22%2C%22flightNumber%22%3A%221508%22%2C%22airlineCodeOperating%22%3A%22WS%22%2C%22operatingFlightNumber%22%3A%221508%22%2C%22airlineCodeMarketing%22%3A%22WS%22%2C%22departureDateTime%22%3A%222019-07-26T10%3A30%3A00%22%2C%22arrivalDateTime%22%3A%222019-07-26T12%3A26%3A00%22%2C%22arrival%22%3A%22SFO%22%2C%22departure%22%3A%22YYC%22%7D%5D%7D%5D&pointOfSale=QkFC',
+    uri: `https://apiw.westjet.com/bookingservices/seatmap?flightInfo=${encodedFlightInfo}`,
     method: 'GET',
+    qs: {
+      segment: 1,
+      pointOfSale: 'QkFC',
+    },
     json: true,
   };
 
   rp(opt)
     .then((response) => {
-      console.log('Got successful response');
+      console.log('Got successful response for:');
       return generateSeatMap(response);
     })
-    .then(console.log)
+    .then((seatMap) => {
+      const [flight] = data;
+      Object.keys(flight).forEach((key) => {
+        console.log(`${key}\t::\t${flight[key]}`);
+      });
+      console.log('=========================================================');
+      console.log(seatMap);
+    })
     .catch((error) => {
       console.log('An ERROR has ocurred');
       console.log(error);
