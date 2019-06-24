@@ -43,7 +43,9 @@ npm run start
 
 - 🎉 Voilá, you are now seeing a printed view of the seat map for this flight.
 
-![Result](demo-result.jpg)
+
+![DEMO](https://github.com/Angel-Mu/westjet-seatmap/blob/develop/demo-result.png)
+
 
 ### Annotations
 
